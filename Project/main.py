@@ -32,12 +32,12 @@ def get_combinations_of_search():
     
     return a
 
-def get_cols(urls,xpath):
-    colonne=[]
-    for url_res in urls:
-        url=url_res[0]
-        res=url_res[1]
-        if res==0:
+def get_cols(url,xpath):
+            colonne=[]
+    
+    
+        
+       
             req=requests.get(url,headers)
             soup = BeautifulSoup(req.content, 'html.parser')
             dom = etree.HTML(str(soup))
@@ -46,57 +46,77 @@ def get_cols(urls,xpath):
             colonne=[]
             for i in list(elements_colonne):
                 colonne.append(i.text)
-            break
+           
         
-    return colonne
+            return colonne
+def get_sing_row(url,xpath):
+        print(url)
+        req = requests.get(url, headers)
+        soup = BeautifulSoup(req.content, 'html.parser')
+        dom = etree.HTML(str(soup))
 
+        #XPaths
+        extra_info=get_extra_infos(url)
+
+        table=dom.xpath(xpath)
+        numero_righe=len(list(table[0]))-1
+        print("Numero di righe",numero_righe)
+        #creazione righe
+        rows=[]
+        for i in range(1,numero_righe):
+            elements_righe=list(table[0][i])
+            row=[]
             
+            for i in elements_righe:
+                row.append(i.text)
+                
+            row.append(extra_info[0])
+            row.append(extra_info[1])
+            row.append(extra_info[2])    
+            rows.append(row)
+
+
+        
+        return rows
+def get_extra_infos(url):
+    data=url.split('/')
+    mese=data[len(data)-1]
+    anno=data[len(data)-2]
+    citta=data[len(data)-3]
+    
+    return (mese,anno,citta)
+
+def get_rows(urls,xpath):
+    all_rows=[]
+    for url in urls:
+        rows=get_sing_row(url,xpath) #lista di lista 
+        for i in rows:
+             all_rows.append(i)
+       
+
+        
+        
+    return all_rows
+        
 def get_data(urls):
 
+    data=urls['url']
+    
     xPath='//*[@id="table-meteo-archivio"]'
-    columns=get_cols(urls,xPath)
+    columns=get_cols(data[0],xPath)
+    columns.append('mese')
+    columns.append('anno')
+    columns.append('citta')
     print(columns)
     
 
+    rows=get_rows(data,xPath)
+    data=pd.DataFrame(data=rows,columns=columns)
+    data.to_csv('rowData.csv')
+
             
 
-    '''
-    req = requests.get(url, headers)
-    soup = BeautifulSoup(req.content, 'html.parser')
-    dom = etree.HTML(str(soup))
-
-    #XPaths
-    xPath_colonne='//*[@id="table-meteo-archivio"]'
-
-    table=dom.xpath(xPath_colonne)
-    #formato tabella->[indice tabella][indice riga][indice colonna]
-
-    #COLONNE
-    elements_colonne=list(table[0][0])
-    colonne=[]
-    for i in list(elements_colonne):
-        colonne.append(i.text)
-
-    print(colonne)
-
-    #RIGHE
-    numero_righe=len(list(table[0]))-1
-    print("Numero di righe",numero_righe)
-    #creazione righe
-    rows=[]
-    for i in range(1,numero_righe):
-        elements_righe=list(table[0][i])
-        row=[]
-        
-        for i in elements_righe:
-            row.append(i.text)
-        rows.append(row)
-
-
-    data=pd.DataFrame(data=rows,columns=colonne)
-    print(data.head(10))
-    '''
-
+    
 
 def prep_URL(url,comb):
     urls=[]
@@ -160,12 +180,12 @@ if __name__=="__main__":
 
     
 
-    ok_urls=get_ok_urls(get_links['url'])
+    #ok_urls=get_ok_urls(get_links['url'])
     #devo filtrare i code non accessibili
 
-    #ok_urls=read_ok_urls('fileok.txt')
-    #print(getURLS)
+    ok_urls=pd.read_csv('url2StateReq.csv')
+    
     
 
     
-    #get_data(getURLS)
+    get_data(ok_urls)
